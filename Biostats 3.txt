@@ -1,0 +1,325 @@
+# Fadoum Ousmane LY
+# TD Biostatistiques
+# M1 STA2E
+# 2023 - 2024
+# TD 3
+#Objectifs : 
+#La régression linéaire : le modèle linéaire (suite), le modèle linéaire généralisé (Poisson et logistique), la 
+#sélection de modèle, les prédictions à partir d’un modèle linéaire
+
+#Données à disposition :
+#Fichier « oiseaux.csv » : Relevés de terrain dans des prairies de l’ouest de la France en mai et avril 2014, 
+#comprenant des mesures de végétation (densité, hauteur et pourcentage de graminées) et des mesures de la 
+#biodiversité en oiseaux (richesse spécifique, abondance totale et présence/absence de tarier des prés).
+#On veut comprendre comment la végétation influence les communautés d’oiseaux prairiaux.
+
+#Exercice #
+#1. Décrire la relation entre la hauteur de végétation et le pourcentage de graminées dans la prairie.# 
+#2. L’abondance des oiseaux dépend-elle de la structure de végétation ? #
+#3. La présence de tarier des prés dépend-elle de la structure de végétation ? 
+#4. Quelle est la probabilité de rencontrer un tarier des prés dans une prairie de 60cm de hauteur, de 
+#densité 0.7 et contenant 50% de graminées en mai 
+
+
+# importer données
+donnees_oizo  <- read.csv("oiseaux.csv")
+
+
+### QUESTION 1
+#décrire la relation entre hauteur et pourcentage de graminées en fonction de la saison
+#graphiquement par un nuage de points
+#On peut penser à faire un nuage de points, mais il faut savoir que ce sont des mesures répétées 
+#(les mesures sont faites en mai et en avril)
+#On pourrait donc faire un nuage de points qui ne tient pas en compte qu'il y a 2 saisons 
+#Dans ce cas, on ne va pas pouvoir analyser simplement la relation entre la hauteur et % de graminées
+#par un simple test de corrélation
+#On pourrait faire un test de corrélation pour les données en avril et mai
+#un nuage de points pour mai
+
+## QUESTION 1
+#On veut comprendre comment la végétation influence les communautés d'oiseaux prairiaux.
+#Cpdt, c'est mieux de faire une régression linéaire pour déterminer la relation 
+#qui existe entre les deux variables (hauteur de la végétation et % de graminées)
+# Modèle linéaire
+# établir la relation entre ces variables par une régression linéaire
+#Fonction lm (linear model=modélisation linéaire)
+#La f° lm permet de modéliser la relation entre deux variables de facon linéaire
+
+library(ggplot2)
+ggplot(data = donnees_oizo, aes(y = hauteur, x = graminees)) +
+  geom_point() +
+  facet_grid(~saison) + #car mesures faites sur 2 saisons différentes
+  scale_x_continuous("Pourcentage de graminées") +
+  scale_y_continuous("Hauteur de végétation (cm)") +
+  theme_classic()
+
+#Est-ce que la relation entre la hauteur et le pourcentage de graminées est la meme en avril et en mai?
+#Il s'agit d'une interaction entre variable: on regarde si on a une relation qui diffère en f° d'une variable
+#NB: Interaction=3 variables 
+ 
+lm(hauteur ~ graminees * saison, data = donnees_oizo) #intercept=49.49339
+m1.1 <- lm(hauteur ~ graminees * saison, data = donnees_oizo) # modèle linéaire
+
+#On a stocké dans m1.1 tous les calculs associés(donnés) par modèle linéaire lm
+#On avait vu que pour établir une régression linéaire pour deux variables x et y
+#il faut que les résidus (=la différence entre les points obsérvés et la droite) ) suivent une loi normale
+#suivent une loi normale (càd la majorité des points alignés sur la droite )
+#Les résidus doivent également avoir les memes variances (homocédasticité des variances)
+
+#Pour cela, on utilise les f° suivantes:
+
+plot(m1.1, 1) # vérifier l'homoscédasticité des résidus
+#On dit que les résidus ont la meme variance si on observe dans plot(m1.1, 1)  que les résidus sont horizontaux avec une variance à peu près constante
+#Les résidus doivent etre alignés sur la ligne rouge
+#On constate que pour certaines valeurs, on a des résidus regroupés alors que pour d'autres, 
+#on a des résidus dispersés
+#Cela constitue un problème
+
+plot(m1.1, 2) # vérifier la normalité des résidus - pas terrible...
+#On constate que la majorité des points sont alignés sur la droite
+#Les résidus suivent une loi normale
+
+#On a constaté avec le plot(m1.2, 1) que les résidus ne semble pas avoir les memes variances
+#Il peut y a avoir eu un problème 
+#Donc au lieu d'analyser la variable brute, on analyse la variable transformée car 
+#il y a peut etre eu un problème 
+#Il faut donc améliorer la régression par une transformation de variable
+#Pour transformer une variable, il existe 3 méthodes:
+
+#1ère méthode: La transformation en échelle log
+#On regarde ici une relation entre le log de la hauteur avec les variables ( %de graminées et saison)
+m1.2 <- lm(log(hauteur) ~ graminees * saison, data = donnees_oizo) # modèle linéaire
+plot(m1.2, 1)
+plot(m1.2, 2)
+#On constate que la transformation en log de la hauteur ne change en rien la distribution des résidus dans les deux plots
+summary(m1.2) # afficher les résultats numériques; 
+
+#Si la transformation en échelle log ne change rien, alors on peut effectuer d'autres types de transformations
+
+#2ème méthode:Regarder la racine carré de notre variable y
+
+#3ème méthode: Regarder 1/variable(1/y)
+
+#Si on fait une relation hauteur en f° de % graminées, ça veut dire qu'on veut déssiner la relation 
+#sous forme d'une droite 
+#Sauf qu'une droite a la propriété d'etre défini sur ]-l'infini, +l'infini]
+#y=ax+b; ca veut dire que la droite peut aller dans deux sens(y peut etre positif ou négatif)
+#Sauf que la hauteur de graminées ne pas etre négative (ca n'a aucun sens)
+#L'analyse de la hauteur en f° de % de graminées peut se faire par une régrèssion linéaire
+#mais ce n'est peut etre pas la vraie relation qu'il y a entre ces variables 
+#Une relation complétement linéaire implique que pour certaines valeurs x, on peut avoir des valeurs de y négatives 
+#Ce qui n'est pas le cas ici
+
+#La transformation nous permet de voir si nos résidus sont bons mais ca nous permet egalement de modéliser nos variables de la facon la plus proche de la réalité
+#La relation entre les variables utilisant la transformation en log ( variable transformée) est meilleure que celle établit avec la variable brute
+#car on sait que la relation entre hauteur et % de graminés n'est pas strictement linéaire
+
+m1.2 <- lm(log(hauteur) ~ graminees * saison, data = donnees_oizo) # modèle linéaire
+plot(m1.2, 1)
+plot(m1.2, 2)
+
+#Vu qu'on a peu près satisfait du modèle lm avec la transformation en log, 
+#on regarde la f° summary (nous donne tous les paramètres estimés par le modèle linéaire au modèle linéaire
+#ainsi que le test statistique associé) et on regarde s'il y a un effet de 
+
+summary(m1.2) # afficher les résultats numériques; 
+
+#La f° summary nous donne différents paramètres: 
+#1.intercept=b
+#2. Effet de F1: on a un paramètre estimant l'effet des graminées (F1) sur la hauteur. on a une p-value=0,5 et il n'y  a pas de significativité apparente)
+#mais rien ne nous indique qu'il n'y a pas de relation entre hauteur et % graminées car il s'agit de facon générale en négligeant l'interaction
+#3.on a un paramètre saison qui prend le mois d'avril comme reférence (car c'est marqué SaisonMai) et donc montre la différence de Avril par rappor à mai
+#le parametre saisonmai est positif et tres significatif (3étoiles), on pourrait dire que la hauteur a augmenté en avril par rapport à mai
+#4.Interaction entre F1 et F2: On a un paramètre qui décrit l'interaction entre graminées et saison (graminees:saisonMai) càd nous permet de voir si la relation entre la hauteur et le % de graminées 
+#est la meme en fonction de la saison. On a p-value=0.00661 ** (significatif). Donc il y a bien une relation entre hauteur et % de graminées mais elle est différente en f° de la saison. 
+#il faut alors afficher la droite de régression montrant la relation entre la hauteur et le % de graminées en fomction de la saison
+#Pour cela, on utilise la f° visreg qui affiche une relation à partir de ce qui a été construit.
+# afficher graphiquement la droite de régression avec le package visreg
+
+library(visreg)
+visreg(m1.2, xvar = "graminees", by = "saison") #by= permet de séparer les données de X(graminées pour deux saisons différentes)
+visreg(m1.2, xvar = "graminees", by = "saison", gg = T, rug = F) +
+  geom_point(data = donnees_oizo, aes(y = hauteur, x = graminees)) +
+  scale_x_continuous("Pourcentage de graminées") +
+  scale_y_continuous("Hauteur de végétation (cm)") +
+  theme_classic()
+
+#La  fonction Visreg nous affiche le log de la hauteur en f° du % de graminées. 
+#Ce qui ne correspond pas à la réalité (car on a fait une transformation de y en log); la relat
+#Nous ce qui nous interesse, c'est la relation entre la hauteur et le % de graminées, 
+#On transforme le log hauteur en hauteur en utilisant la f°exponentielle
+#Il est possible d'inclure une transformation dans la fonction visreg en ajoutant exp
+
+visreg(m1.2, xvar = "graminees", by = "saison") #by= permet de séparer les données de X(graminées pour deux saisons différentes)
+visreg(m1.2, xvar = "graminees", by = "saison", trans = exp, gg = T, rug = F) + #gg=True(T) permet de mettre les paramètres de ggplot dans visreg
+  geom_point(data = donnees_oizo, aes(y = hauteur, x = graminees)) +  #on met un nuage de points des valeurs observées 
+  scale_x_continuous("Pourcentage de graminées") +
+  scale_y_continuous("Hauteur de végétation (cm)") +
+  theme_classic()
+
+#Ce graphe signifie: 
+#On a calculé pour notre modèle linéaire la relation qui explique la relation entre la hauteur et le % de graminées en f° de la saison 
+#Visreg affiche l'effet du graminées en fonction de la saison en prenant ce modèle là 
+#exp permet de passer des valeurs transformeées (avec log) aux valeurs brutes 
+#ggplot a permis d'afficher sous forme d'un graphe ggplot surlequel on a ajouté les vraies valeurs observées (hauteur et % de graminées) en f° des deux saisons
+
+
+## QUESTION 2: Est-ce la structure de la végétation a un effet sur l'abondance des oiseaux
+#L'abondance des oiseaux dépend-elle de la structure de végétation?
+# La structure de la végétation comprend la hauteur de la végétation, la densité de la végétation et le pourcentage de graminées
+#commençons par regarder la relation entre la hauteur de végétataion
+# représentation graphique en nuage de points
+
+ggplot(data = donnees_oizo, aes(y = abondance, x = hauteur, color = saison)) + #on a deux saisons différentes donc on les différencie par des couleurs
+  geom_point() +
+  scale_x_continuous("Hauteur de la végétation") +
+  scale_y_continuous("Abondance des oiseaux") +
+  theme_classic()
+
+# régression linéaire
+m2.1 <- lm(abondance ~ hauteur + saison, data = donnees_oizo)
+plot(m2.1, 1) #Pour voir si les résidus ont les memes variances 
+plot(m2.1, 2) # on a clairement un problème avec nos résidus ! Les points ne sont pas alignés sur la droite représentant la loi normale.
+#Vu qu'on constate que les résidus ne suivent pas la loi normale, on pourrait essayer comme dans la question 1 de faire une transformation en log des résidus
+m0.1 <- lm(log(abondance ~ hauteur + saison, data = donnees_oizo))
+#On constate que quand on essaie de transformer l'abondance en log, ca ne marche pas
+#En effet, on ne peut pas faire un log de abondance=0
+#Pour certaines mesures, il n'y avait pas d'oiseaux donc abondance des oiseaux =0
+#On peut parfois faire une transformation log+1 pour éviter d'avoir log(0)
+#Dans notre cas, ce na marche pas non plus
+#La variable abondance a des propriétés particulières
+#L'abondance est une variable positive et discrete(1 2 3 4 5...)
+#Pour le modèle linéaire, il faut que les données suivent une loi normale 
+#Or l'abondance ne suivra jamais une loi normale 
+#Il existe une loi de probabilité permettant de décrire des données positives et discretes 
+#Il s'agit de la loi de Poisson 
+#La loi de Poisson de probabilité qui décrit une variable positive et discrète avec la moyenne et la variance égales 
+#La loi de Poisson permet de décrire une variable obtenue par décompte de cellules, bactéries ou de quelque chose d'autre 
+#Il existe un moyen de faire un modèle linéaire mais en spécifiant qu'on travaille dans le cadre d'une loi de Poisson (ou n'importe qu'elle autre loi)
+#le modèle linéaire simple lm est un sous ensemble d'un modèle généralisé appelé glm
+#glm est un modèle linéaire généralisé qui peut s'appliquer à des choses bcp plus générales que à des lois de proba simples comme la loi normale (n'est pas limité à des lois de probas simples )
+#Il suffit de préciser la loi sur laquelle on travaille
+#Vu qu'on travaille sur une variable issue de comptage, on utilise poisson
+# regardons la distribution de nos données
+##NB
+#lm:On suppose qu'on regarde des observations (données) d'une popolation qui suit une loi normale et on modélise les paramètres de cette loi normale en fonction d'une ou de plusieurs variables
+#glm issu de poisson: On considère que chacune de nos observations sont tirées d'une lo de Poisson qui a un seul paramètre (moyenne=variance)
+#De plus, avec glm Poisson et que le paramètre de cette loi de Poisson est égale à l'exponentielle d'une chose qui est linéaire
+#En vrai, ce qu'on fait c'est qu'on modelise le log du parametre de la loi de Poissson de facon linéaire
+#Donc en réalité, il y a une transformation log d'un paramètre de la loi de Poisson qui se fait dans un glm Poisson 
+#le glm Poisson implique 
+hist(donnees_oizo$abondance) # distribution de Poisson (= variable positive discrète) !!
+
+#Passons à un modèle linéaire généralisé qu'on s'en fout de la normalité des résidus et de l'homogénéité des variances (On peut faire les garphes de résidus mais ca ne change rien)
+#Avec le modèle linéaire généralisé implique qu'on considère donc dès le début qu'on a une loi de prob simple et ca ira bien
+#NB: Dès qu'on a une variable de compte, on peut utiliser glm poisson 
+#glm poisson
+#Effet de hauteur sur l'abondance
+m2.2 <- glm(abondance ~ hauteur + saison, data = donnees_oizo, family = poisson)
+summary(m2.2) # clairement pas de lien
+#Summary nous estime les memes paramètres que dans le lm. Cpdt, ces paramètres sont moins faciles à interpréter car il y a une transformation log
+#Pour interpréter, on utilise le signe des coefficients. Si le signe est négatif, ca veut dire que les variables ont une relation négative.
+
+#Effet du % de graminées sur la saison 
+m2.3 <- glm(abondance ~ graminees + saison, data = donnees_oizo, family = poisson)
+summary(m2.3) # paramètre estimé graminees = -0.011997 et ***, il semble y a voir un effet négatif du % de graminées sur l'abondance des poissons
+ 
+#Effet du % de graminées en interaction avec la saison sur l'abondance des oiseaux
+m2.4 <- glm(abondance ~ graminees * saison, data = donnees_oizo, family = poisson)
+summary(m2.4)
+
+#Conclusion:Aucune des trois variables de la structure de la végétation n'a un effet sur l'abondance des oiseaux
+
+#Pour aller plus loin, on regarde en meme temps l'effet des troiss variables qui décrivent la structure de la végétation sur l'abondance des oiseaux en fonction de la saison
+#Pour ce faire, on utilise un modèle multivarié
+
+# Modèle multivarié
+m2.5 <- glm(abondance ~ (graminees + hauteur + densite) * saison, data = donnees_oizo, family = poisson)
+summary(m2.5) #Pour interpréter, on regarde les paramètres estimés et la fonction visreg pour afficher 
+#Conclusion voir tableau des paramètres: Il n'y a aucun effet de la hauteur sur l'abondance des oiseaux, pas d'effet de la densité sur la hauteur de la végétation, il y a un effet négatif du % de graminées sur l'abondance des oiseaux (car paramètre = -0.0132766 et *** (significatif)). Cet effet négatif n'est pas en interaction avec les saisons, c'est un effet négatif global.
+
+# représentation graphique du modèle
+visreg(m2.5, xvar = "graminees", by = "saison", scale = "response", gg = T, rug = F) +
+  geom_point(data = donnees_oizo, aes(y = abondance, x = graminees)) +
+  scale_x_continuous("Pourcentage de graminées") +
+  scale_y_continuous("Abondance des oiseaux") +
+  theme_classic()
+#Ici la f° Visreg nous affiche la relation linéaire entre l'abondance en f° du % de graminées. Cpdt, on a une transformation log qui a été faite. Donc on veut voir cette relation là. 
+#scale=response dans visreg permet de faire la retro transformation   
+
+# on aurait pu faire tout ça avec la richesse spécifique au lieu de l'abondance (également distribution de Poisson)
+m2.6 <- glm(richesse ~ (graminees + hauteur + densite) * saison, data = donnees_oizo, family = poisson)
+summary(m2.6)
+
+visreg(m2.6, xvar = "graminees", by = "saison", scale = "response", gg = T, rug = F) +
+  geom_point(data = donnees_oizo, aes(y = richesse, x = graminees)) +
+  scale_x_continuous("Pourcentage de graminées") +
+  scale_y_continuous("Richesse spécifique en oiseaux") +
+  theme_classic()
+
+## QUESTION 3
+
+# Effet de la structure de végétation sur la présence du tarier des prés
+#Présence/absence de tarier n'est pas une variable comptable. Cette variable prend deux valeurs (binaire)
+#On se met alors dans une nouvelle famille qui est binomiale (on dit à notre à notre modèle linéaire généralisé que l'on travaille sur une variable binaire ou binomiale?)
+
+# cas des graminées
+# nuage de points
+ggplot(data = donnees_oizo, aes(y = presence_tarier, x = graminees, color = saison)) +
+  geom_point() +
+  scale_x_continuous("% de graminées") +
+  scale_y_continuous("Présence de Tarier des prés") +
+  theme_classic() # on ne voit rien !
+
+# boîtes à moustache (pas mal pour représenter simplement la différence de % graminées entre présences et absences)
+ggplot(data = donnees_oizo, aes(x = presence_tarier, y = graminees, fill = saison)) +
+  geom_boxplot() +
+  scale_x_continuous("Hauteur de la végétation") +
+  scale_y_continuous("Présence de Tarier des prés") +
+  theme_classic()
+
+# modéliser la probabilité de présence en fonction des variables de structure de végétation
+# modèle linéaire généralisé sur données binomiales
+# = régression logistique
+m3.1 <- glm (presence_tarier ~ (graminees + hauteur + densite) * saison, data = donnees_oizo, family = binomial)
+summary(m3.1)
+
+visreg(m3.1, xvar = "graminees", scale = "response", gg = T, rug = F) +
+  scale_x_continuous("Pourcentage de graminées") +
+  scale_y_continuous("Probabilité de présence de tarier des prés", limits = c(0,1)) +
+  theme_classic()
+
+visreg(m3.1, xvar = "densite", scale = "response", gg = T, rug = F) +
+  scale_x_continuous("Densité de la végétation") +
+  scale_y_continuous("Probabilité de présence de tarier des prés", limits = c(0,1)) +
+  theme_classic()
+
+#avec Visreg on a pu voir ce que le modèle linéaire nous a calculé. On voit que le modèle nous a estimé des valeurs continues alors qu'on avait dit que y peut prendre que 0 ou 1. 
+#En réalité, il s'agit ici, d'une régression logistique
+#et ces prédictions continues entre 0 et 1 sont des probabilités. 
+
+## QUESTION 4
+newdata <- cbind.data.frame(
+  saison = "Mai",
+  graminees = 50,
+  hauteur = 60,
+  densite = .7)
+
+predict(m3.1, newdata, type = 'response')
+
+# jusqu'où s'arrêter ?
+m3.2 <- glm(presence_tarier ~ graminees * hauteur * densite * saison, data = donnees_oizo, family = binomial)
+summary(m3.2)
+
+m3.3 <- glm(presence_tarier ~ graminees + densite + saison, data = donnees_oizo, family = binomial)
+
+m3.4 <- glm(presence_tarier ~ graminees + densite, data = donnees_oizo, family = binomial)
+
+m3.5 <- glm(presence_tarier ~ graminees, data = donnees_oizo, family = binomial)
+
+# extraire l'AIC de chaque modèle. Le plus petit est le meilleur !
+AIC(m3.1)
+AIC(m3.2)
+AIC(m3.3)
+AIC(m3.4)
+AIC(m3.5)

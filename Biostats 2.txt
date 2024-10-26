@@ -1,0 +1,167 @@
+
+#TD 2 BIOSTATS 
+#M1 STA2E
+#2023 - 2024
+
+#Espace de travail
+setwd("~/TD2 Biostats")
+
+#Importer mes données 
+ly<-read.csv("satisfaction_europe.csv")
+
+# Question1: l'argent fait-il le bonheur?
+# Observer la correlation entre le niveau de satisfaction et le revenu moyen par habitant
+
+# Nuage de points
+names(ly)
+plot(ly$Satisfaction~ly$revenu,
+     xlab="Revenu", 
+     ylab="Niveau de satisfaction",
+     col="red")
+
+#2 Variables quantitatives
+#Test de normalité de shapiro
+#H0:Les données suivent une loi normale
+#H1:L'inverse 
+shapiro.test(ly$revenu) #W = 0.92443, p-value = 5.38e-12
+shapiro.test(ly$Satisfaction) #W = 0.97346, p-value = 8.591e-06
+#Conclusion: Les données des deux variables revenu et niveau de satisfaction 
+#ne suivent pas une loi normale (p-value respectivement égales à p-value = 5.38e-12< 0,05 et p-value = 8.591e-06<0,05).
+
+#Test de corrélation de Spearman
+#H0:Le coefficient de corrélation r = 0 (il n'y a pas de corrélation).
+#Hypothèse alternative : le coefficient de corrélation r ≠ 0 (il y a une corrélation).
+cor.test(ly$Satisfaction, ly$revenu, method="spearman") #S = 2610767, p-value < 2.2e-16. 
+#Conclusion: p-value<0,05. On rejette HO. Il y a une positive corrélation corrélation (Rho positif) élevée (Rho>0,5) entre 
+#le revenu et le niveau de satisfaction. En d'autres termes, il y a une corrélation significative entre les deux variables.
+
+#Le test de corrélation nous renseigne sur l'existence de corrélation entre les deux variables quantitatives.
+#On pourrait donc essayer de décrire réellement cette corrélation.
+#Pour cela, modéliser cette corrélation ou la représenter sous forme d'une équation. 
+#On va voir si on peut représenter cette relation sous forme de relation linéaire qui est sera représenté sous forme d'une droite de régression. 
+#Une droite de régréssion est une équation du type Y=ax+b
+#Y=satisfaction, x=revenu, a =coefficient
+#On pourrait donc essayer d'estimer ces paramètres
+#Il existe des fonctions qui permettent d'estimer les paramètres d'une régression linéaire
+#La fonction lm (linear model=modélisation linéaire): qui permet de modéliser la relation entre deux variables de facon linéaire
+#Càd y en fonction de x
+lm(Satisfaction ~ revenu, data = ly)
+#Cette fonction nous donne l'intercept=5.653e+00 et le paramètre associé à la variable revenu (x) qui correspond à a (coef directeur) =7.103e-05  
+# réaliser maintenant une régression linéaire pour décrire la relation entre le niveau de satisfaction et le revenu
+
+###Attention###
+#La fonction lm nous donne deux valeurs (l'intercept et le coef associé à x) et a donc permis d'estimer les parametres de la droite
+#Ce n'est parcequ'on estime des paramètres de la droite de régression que cette relation linéaire entre x et y existe. 
+#On va vérifier certaines choses avant de conclure sur l'existence de relation linéaire. 
+##Si on imagine une droite qui traverse un nuage de points, la +part des points devraient etre proches de la droite et les autres points un peu en dessous ou un peu au dessus de la droite. 
+##Cela veut donc dire que les différences entre les points observés et la droite doivent suivre une loi normale.
+##Cette différence entre les points observés et la droite sont appelés les résidus de la régréssion linéaire.
+#Les résidus sont la distance entre les valeurs observés et les valeurs prédites par la droite de régréssion.
+m1 <- lm(Satisfaction ~ revenu, data = ly)
+m1 # c'est un objet qui contient les coefficients/paramètres de la droite de régression
+residuals(m1) #lafonction residuals permet d'extraire les résidus d'une fonction linéaire
+hist(residuals(m1)) # histogramme de distribution (la forme de la répartition des valeurs) des résidus de la régréssion linéaire 
+#L'histogramme des résidus nous permet de visualiser la forme de la répartition des valeurs de résidus
+#Au vu de l'histogramme de distribution, est-ce que les valeurs de résidus suivent une loi normale?
+#La forme ressemble à ce qu'on s'attendrait dans une loi normale.
+#Un test permet de vérifier s'il suit une loi normale.(test de shapiro)
+#En réalité, on n'a pas besoin que les résidus suivent une loi normale mais plutot que ca suive à peu près une loi normale.
+#Cpdt, il n'y a pas de test qui permet de dire si ça suit à peu près une loi normale. 
+#Donc, il faut juste interpréter. 
+#On utilise un autre outil plus facile que cette histogramme qui est le qqplot.
+#qqplot est une methode graphique qui permet de comparer une distribution observée à une distribution attendue (des quantiles).
+#On fait un plot sur l'objet m1 qui nous sera un graphe de diagnostic de notre régréssion linéaire.
+#Il y a quatres graphes possibles(1,2,3 et 4)
+plot(m1, 1) #1er graphe de diagnostic
+plot(m1, 2) #2ème graphe de diagnostic 
+#Titre du qqplot (le 2ème): qqplot des résidus en fonction des quantiles théoriques si ca suit la loi normale. 
+
+summary(m1) # tests sur les coefficient (H0 = "le coefficient est égal à 0") + R² (= variance expliquée)
+#Test sur les coefficients: p-value: < 2.2e-16 <0,05. On rejette H0. Le coefficient est différent de 0. 
+#Interprétation du qqplot:
+##La ligne pointillée représente les valeurs attendues si ca suit la loi normale.
+##Les résidus suivent la loi normale s'ils sont alignés sur cette droite en forme de pointillée.
+#En observant le qqplot, on en déduit que la majorité des résidus suivent la loi normale. 
+#Conclusion: On est à peu près satisfait de notre régréssion linéaire et on a estimé les deux paramètres. qu'elle a une bonne approximation de la relation entre nos deux variables. 
+
+#Le qqplot nous a permis d'estimer les parametres de la régression linéaire mais il ne nous indique pas s'il y a une relaion entre eles deux variables. 
+#Comment savoir s'il y a une relation entre deux variables. 
+#S'il n'y a pas de relation entre les variables, la droite de régression est plate et le coefficient directeur est nul (a=0).
+#Donc pour savoir s'il y a relation entre les deux variables, on vérifie que a est différent de 0 (significativement different de 0 ou non.)
+#Il existe des tests qui permettent de vérifier si les paramètres d'une régréssion sont significativement différents de 0. 
+#la fonction summary est un test d'hypothése qui permet de vérifier si ces parametres sont signicativement différents de 0. 
+#tests sur les coefficients (H0 = "le coefficient est égal à 0") + R² (= variance expliquée)
+summary(m1) # On a dans console un tableau avec une ligne correspondant Intercept et une ligne qui correspond au coef associé au revenu. 
+#On a les paramètres estimés par la fonction lm (vu en haut). 
+#Les deux dernières colonnes correspondent à des tests d'hypothèse pour voir si les deux paramètres sont différents de 0 ou non. 
+#p-value: < 2.2e-16. On rejette H0. Les deux paramètres a et intercept sont différents de 0.
+###Conclusion générale: Il y a une corrélation entre le niveau de satisfaction et le revenu. La modélisation linéaire nous a permis d'estimer de facon précise cette relation entre les deux ainsi que les paramètres entre les deux. 
+#La corrélation est significative(p-value très faible) et positive(la pente est positive: sur summary, ligne du coef directeur (à coté de revenu). 
+#Pour etre plus précis, on peut quantifier cette relation.En effet,pour chaque euro de revenu en plus, on a une satisfaction qui augmente de 7.5 10*5 point.
+#R*2 =0, s'il n'y a pas de relation entre les deux variables.
+#R*2 =1, corrélation parfaite. 
+#R*2 différent de 0, 
+#R*2 donne la part de x qui explique y. La partie du niveau de satisfaction expliquée par le revenu est de 29%. 
+
+
+# figure alternative avec ggplot2 pour ajouter la droite de régréssion sur le nuage de points
+library(ggplot2)
+ggplot(data = ly, aes(y = Satisfaction, x = revenu)) +
+  geom_point() +
+  geom_smooth(method = 'lm') + #pour ajouter la droite de régression linéaire
+  scale_x_continuous("Revenu moyen / habitant") +
+  scale_y_continuous("Indice de satisfaction") +
+  theme_classic()
+
+# La satisfaction est-elle également influencée par l'âge des individus ?
+#Càd: Est-ce qu'il y a une différence du niveau de satisfaction en fonction de l'age? figure
+#NB: La variable age n'est pas continue. Donc, on fait un boxplot.
+ggplot(data = ly, aes(y = Satisfaction, x = age)) +
+  geom_boxplot() +
+  scale_x_discrete("Âge") +
+  scale_y_continuous("Indice de satisfaction") +
+  theme_classic()
+
+#Question: Y a t-il une différence du niveau de satifaction median en fonction de l'age?
+#(on a 6 groupes pour l'age)
+# Anova == est un type de modélisation linéaire dans lequel la variable x est une variable qualitative.
+#H0: Les moyennes sont égales
+#H1: Les moyennes sont différentes 
+m2 <- lm(Satisfaction ~ age, data = ly) #modèle m2
+hist(residuals(m2))
+plot(m, 1)
+plot(m2, 2) #qqplot: Une bonne partie des points se trouvent sur la droite pointillée.
+
+summary(m2)#Nous donne la différence estimé par la fonction lm avec un test statistique. R prend le 1er groupe comme groupe de référence. C'est pour cela qu'on ne le voit pas dans le tableau de summary de console.
+anova(m2) #3.264e-13<0,05. Donc, on rejette H0. Il y a donc une différence du taux de satisfaction en fonction de l'age. 
+
+m2 <- aov(Satisfaction ~ age, data = ly)
+TukeyHSD(m2)# test post-hoc pour comparer les âges 2 à 2 
+
+# Y a-t-il une interaction entre revenu et âge ?
+#On sait maintenant que les deux variables ont un effet sur le niveau de satisfaction. 
+#Donc on considère les deux variables dans la meme analyse sur le niveau de satisfaction
+
+# figure
+ggplot(data = ly, aes(y = Satisfaction, x = revenu, color = age)) +
+  facet_wrap(. ~ age) +
+  geom_point() +
+  geom_smooth(method = 'lm') +
+  scale_x_continuous("Revenu moyen / habitant") +
+  scale_y_continuous("Indice de satisfaction") +
+  scale_color_discrete("Âge") +
+  theme_classic()
+
+# tester l'interaction dans un modèle linéaire
+m3 <- lm(Satisfaction ~ revenu * age + sexe + Pays, data = ly)
+hist(residuals(m3))
+plot(m3, 1); 
+plot(m3, 2)
+
+summary(m3)
+anova(m3)
+
+library(emmeans) # estimer la droite de régression pour chaque âge
+emtrends(m3, spec = ~ revenu * age, var = "revenu")
+
+

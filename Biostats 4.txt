@@ -1,0 +1,284 @@
+
+##TD4:Analyse en Composantes Principales (ACP) ##
+
+
+Exercice:
+#1. Décrire les corrélations entre variables morphologiques.
+#2. Décrire les différences existantes entre chaque genre pour chacun des caractères morphologiques.
+#3. Réaliser une analyse en composante principale sur les caractères morphologiques. Quelle variance est 
+#expliquée par chaque composante principale ? Quels caractères morphologiques sont corrélés à 
+#chaque composante principale ?
+#4. Peut-on discriminer les genres en fonction de leurs caractères morphologiques ?
+#5. Déterminer s’il existe une relation entre la morphologie, résumée par la 1ère composante principale, et 
+#l’aire de répartition des espèces.
+#6. Peut-on classifier les différents genres sans information a priori ?
+#7. Identifier le genre de l’individu inconnu.
+#8. Identifier l’espèce et le sexe de l’individu inconnu
+
+#Description des données:
+#caractères morphologiques mesurés sur 572 animaux appartenant à 34 espèces de 
+#rongeurs, dont 3 genres différents. Les mesures incluent la longueur du corps (HBL), la longueur de la queue 
+#(TL), la longueur de l’arrière-pied (HFL), la longueur des oreilles (EL) et la masse (WT). Le sexe des individus, 
+#ainsi que la taille de l’aire de répartition de chaque espèce, sont également indiqués
+
+#Mon espace de travail 
+setwd("~/TD TP Biostats M1 ST2AE 2023 2024/TDs/TD4")
+
+#Import des données 
+df<-read.csv("rongeurs.csv")
+library("tidyverse")
+             
+#Le fichier rongeurs.csv contient différents caractères morphologiques de 572 animaux de
+#34 espèces de rongeurs appartenant à 3 genres différents.
+#5 caractères morphologiques:
+##HBL=la longueur du corps 
+##TL= la longueur de la queue 
+##HFL=la longueur de l’arrière-pied
+##EL=la longueur des oreilles  
+##WT= la masse
+#Le sexe des individus,la taille de l’aire de répartition de chaque espèce, sont également indiqués
+
+#Tableau contenant les donnnées de chaque genre
+fa<-Tableau contenant les données de tous les rongeurs(572) 
+fa_dipo <- subset(df, Genus=="Dipodomys") #tab contenant données du genre Dipodomys
+fa_mus <- subset(df,Genus=="Mus") #tab contenant données du genre Mus
+fa_neo <- subset(df,Genus=="Neotamias") #tab contenant données du genre Neotamias
+
+#Question 1 : Décrire les corrélations entre les variables morphologiques#
+##Représentation de toutes les variables les unes en fonction autres#
+fa[,4:8] #Afficher toutes les données des variables 4 à 8 inclus (colonnes)
+plot(fa[,4:8]) 
+summary(fa) #On a les quartiles (min, max,median...)
+
+##1ère méthode:Test de corrélation de Pearson ou Spearman#
+# évaluation de la normalité: Test de normalité de shapiro
+#H0: Les données suivent une loi normale. H1=inverse
+#Si p-value>0,05, on ne rejette pas H0.
+#Si p-value<0,05, On rejette H0.
+
+shapiro.test(fa$HBL)# p-value < 2.2e-16 <0,05. Donc les données de la longueur du corps (HBL) ne suivent pas une loi normale. 
+shapiro.test(fa$TL)# p-value < 2.2e-16 <0,05, pas de normalité
+shapiro.test(fa$HFL)# p-value < 2.2e-16 <0,05, pas de normalité
+shapiro.test(fa$EL)# p-value = 1.751e-05<0,05, pas de normalité
+shapiro.test(fa$WT)# p-value = 1.585e-08, pas de normalité
+
+#Conclusion: Les données des cinq variables ne suivent pas une loi normale. Donc, on effectue un test de corrélation de Spearman.
+cor(fa[,4:8],method="spearman") #Intensité corrélation de spearman#
+#Le tableau donné par ce test correspond au coef de correlation de Spearman (Rho) qui mesure l'intensité de corrélation entre les variables 2 à 2. 
+#rho est compris entre -1 et 1. Lorsque rho=1 donc on a une forte forte corrélation positive entre les deux variables et lorsque c'est -1 on en déduit qu'on a une forte correlation négative entre les 2 variables.
+
+#NB: Si toutes les données suivaient une loi normale, on aurait fait un test de corrélation de Pearson. #
+cor(fa[,4:8]) #Test de Pearson#
+
+#2ème méthode:Test de corrélation avec la fonction rcorr du package Hmisc:
+##On vérifie la normalité des données
+##On fait le test avec la fonct° rcorr
+install.packages("Hmisc")
+library(Hmisc)
+rcorr(as.matrix(fa[,4:8]), type="pearson") #coefficient de corrélation entre les variables avec spearman#
+#Test de Spearman: Il n'y a pas de corrélation entre les variables
+#H1:Inverse
+#rcorr(as.matrix(df [,4:8],type='spearman') 
+#Il montre un tableau avec les différents rho (coef de correlation) entre les différentes variables.
+#les P-value sont trés faibles donc il nous donne une valeur de 0.
+#p-value<0,05, on rejette H0.Toutes les variables sont corrélées.
+
+
+#Question 2 : Décrire les différences existantes entre chaque genre pour chacun des caractères morphologiques#
+
+#Visualiser par un boxplot: On fait un boxplot pour chaque variable en f° du genre et décrire s'il existe une différence ou pas selon le genre (médiane..)
+boxplot(HBL~Genus,data=fa)# évaluer la difference de la taille du corps en f° du genre
+boxplot(TL~Genus,data=fa)# évaluer la difference de la taille du la qeue en fonction du genre
+boxplot(EL~Genus,data=fa) #Evaluer la différence de la longueur des oreilles en fonction du genre 
+boxplot(WT~Genus,data=fa) #Evaluer la différence de la masse en fonction du genre 
+boxplot(HFL~Genus,data=fa) #Evaluer la différence de la longueur de l'arrière-pied en fonction du genre 
+
+#Question3: Réaliser une analyse en composante principale sur les caractères morphologiques. 
+#Pour distinguer les genres en fonction de l'ensemble des variables, 
+#on ne peut pas faire le lm (genus~ HBL+TL+EL+WT+HFL) car le genre (genus) est une variable qualitative
+# donc on fait une analyse en composante principale sur les différentes variables
+#Faire une ACP revient a créer à partir de 2 Variables corrélées, 2 autres variables orthogonales non corrélées liées à la variation résiduelle des deux premières variables 
+# on peut créé autant de variables orthogonales non corrélées qui représentent la variation résiduelle des variables en amont
+#l'idée est de créer de nouvelles variables non corrélées, et seront crées dans un ordre d'importance décroissant en commencant avec la variable qui explique le max de données
+#Q'est ce qu'un ACP? L'ACP permet d'eliminer la redondance qui pourrait exister entre les différentes variables dans un jeu de données et de réduire les dimensions.S'il y a trop de redondance, on pourrait finir avec deux dimensions qui pourraient expliquer la plupart de la variance qui existait au niveau du jeu de données initiales.
+#On se fixe un seuil= à 90 ou 95% de la variance qui était  au niveau du jeu de données initiale. 
+#Faire et visualiser les composantes principales#
+install.packages("ade4")
+library(ade4)
+install.packages("factoextra")
+library(factoextra)
+install.packages("FactoMineR")
+
+#Création d'un objet contenant les composantes principales selon les variables (5)#
+acp <-dudi.pca(df[,4:8],scann=F,nf=5)
+
+#Visualiser l'ACP en screeplot : les 5 composantes principales (5 car 5 variables)#
+fviz_screeplot(acp,addlabels=T)
+
+#Analyse du screeplot:
+#Screeplot représente le pourcentage de variation expliqué par les différentes variables#
+#La composante 1 est la première composante principale qui explique un maximun de variation et le num 5 est la variable qui explique la toute petite variation qui reste.
+#La première variable est la première composante principale et le pourcentage de variation expliquée par celle-ci représente 74%.
+#Les premières variables 1 et 2 représentent à peu prés 90% de l'information d'explication donc au lieu de travailler avec 5 variables on vatraviallé avec 2 variables seulement qui prortent 9O% d'inforamtion
+#Càd que 90% de la variation est expliquée par les variables 1 et 2. Donc, on va travailler avec ces deux variables au lieu de 5 variables.
+
+#Représenter le Cercle de corrélation: fviz_pca_var((acp))
+#Qu'est ce qu'un cercle de corrélation ? Permet de voir la corrélation qui pourrait exister entre un groupe de variable à la fois.
+#Rappels:#NB:Interprétation du cercle de corrélation:En se basant du cours de biostats 
+#Si on ne s’intéresse qu’aux deux premières composantes CP1 et CP2 (ou Y1 et Y2), on peut tracer un
+#graphique dont les abscisses sont les corrélations des
+#variables de départ avec la composante principale 1 (CP1) et les ordonnées sont les corrélations des variables de départ avce lavec la CP2.
+#Ces valeurs sont entre −1 et 1, et on peut montrer que les points restent dans
+#le cercle unité, dit cercle de correlation 
+#plus la valeur absolue de l’abscisse de la variable est grande, 
+#plus la variable intervient dans la définition de la composante principale 1 (Y1).
+#plus la valeur absolue de l’ordonnée de la variable est grande, 
+#plus la variable intervient dans la définition de la composante principale 2 (Y2).
+fviz_pca_var((acp))
+
+#Comment déterminer la corrélation entre les variables initiales?
+#Interprétaion du cercle de corrélation a pour but de déterminer la corrélation existante entre les différentes variables initiales
+#La détermination de la corrélation entre les variables initiales se fait selon deux points:
+##1. La représentativité de chaque variable par les composantes principales (1 et2)
+##2.La valeur d'un angle entre deux variables. 
+##Angle entre les variables:
+#Si on a un angle proche de 0, on dit qu'on a une corrélation positive parfaite entre ces deux variables(+1)
+#Si on a un angle proche de 90°, on dit qu'on a une corrélation négative quasi parfaite entre ces deux variables(-1)
+#Si on a un angle de 90°, on a une corrélation nulle (=0).
+
+# Comment interpréter le cercle de corrélation TD (A partir de mes notes de CM de Biostats)
+#La composante principale 1 (CP1=Dim1) est sur l'axe X et la deuxième (CP2= Dim2) est sur L'axe Y.
+#Dim1 explique 74,8% de la variance du jeu de données initiale et Dim2 explique 14,3% de la variance du jeu de données initiale. 
+#La première composante principale represente 75% de la variable EL. La deuxième composante principale représente aussi 75% de la variable EL.(environ)
+#Pour l'intéprétation: On regarde l'angle et la représentativité de chaque variable variables 
+#WT est une flèche complétement horizontale donc cette variable est presque entièrement dans la composante principale 1 (Y1). 
+#WT est expliquée par la première composante principale à presque 100%.
+#WT est très bien représenté par DIM1 et très mal représentée par DIM2. 
+#La flèche du WT est complètement corrélé avec la CP1 mais il est dérigé vers le bas donc la corrélétion est négative 
+#La variable HBL est très proche de WT elle est largement contenu dans la CP1  et legerement décalé vers le bas donc un petit morceau de la variable est contenu dans la CP2.
+# La variable EL est sur la moitié entre CP1 et CP2.
+# Les HFL et TL sont largement corrélé positivement à la CP1 et largement corrélé négativement avec la CP2 
+# on peut dire que pour LA CP1 comporte principalement l'info de WT, HBL et largement HFL,TL ET LA MOITIé DE EL
+
+#Quels caractères morphologiques sont corrélés à 
+#chaque composante principale ?????
+
+#Question 4: Peut-on discriminer les genres en fonction de leurs caractères morphologiques ? 
+# Avec nos 5 variables initiales (décrivant la morphologie), on ne peut pas expliquer ou descriminer entre les trois genres 
+# mais en untilisant nos composantes principales on peut donner  une idée de comportement des deux genres 
+#Les 5 variables sont ainsi résumées en 2 composantes principales qui sont représentatives
+
+fviz_pca_ind(acp,geom="point",
+             axes=c(1,2),# composantes principales 1 et 2 # on a placcé nos valeurs d'origine par rapport à nos composantes principale 1 ET 2 donc on a tout regroupé en 2 variables
+             habillage = df$Genus,
+             addEllipses = T)# on a rassemblé la dispersion des point par genre. #Les 3 groupes (espèces soit les élipses) sont totalement distinctes donc les morpho sont bien différentes#
+
+#Interprétation: les 3 genres sont totalement répartis sur l'axe des abcisses;
+#les neotomias et mus vers la zone positive donc ils ont tendance à avoir une taille plus petite?
+#La taille d'oreille est corrélé négativement avec la CP2 (voir cercle de corrélation) et donc vu  que Mus et Neotamias sont en bas donc il ont une taille d'oreille plus grande
+# les groupes ROUGES ON TENDANCE à AVOIRE PLUS DE tl ET hfl
+
+#NB: Si on veut tarvailler avec les CP3 ET 4
+fviz_pca_ind(acp,geom="point",
+             axes=c(3,4),# composantes principales 1 et 2 # on a placcé nos valeurs d'origine par rapport à nos composantes principale 1 ET 2 donc on a tout regroupé en 2 variables
+             habillage = df$Genus,
+             addEllipses = T)
+
+# on a pas d'information claire vu que les composante principales 3 ET 4 NE REPRéSENTE QUE 10 % de l'information
+# on peut travailler avec d'autres composantes principales mais la plus fiable et la composante 1 ET 2
+
+#################QUESTIONS NON TRAITéS##############
+#Question5:Déterminer s’il existe une relation entre la morphologie, résumée par la 1ère composante principale, et 
+#l’aire de répartition des espèces.
+#6. Peut-on classifier les différents genres sans information a priori ?
+
+#Question 7: Identifier le genre de l’individu inconnu.
+#Pour se faire, on va voir où il se place dans notre graphe (distribution avec les deux composantes)
+
+#Importer le fichier contenant les info du rongeur inconnu#
+df_inconnu <- read.csv("rongeur_inconnu.csv")
+
+#Fonction qui ajoute une ligne supplémentaire à un objet existant#
+suprow(acp,df_inconnu)
+inconnu <- suprow(acp,df_inconnu)$lisup  #lisup=une ligne supplémetaire
+
+#Objet qui contient le graph#
+p <- fviz_pca_ind(acp, geom="point",
+                  habillage=df$Genus,
+                  addEllipses = T,
+                  axes=c(1,2))
+
+
+fviz_add(p,inconnu[,1:2]) #Ajouter les composantes principales 1 et 2 et on visualise le rongeur inconnu.
+#Le genre du rongeur inconnu est Mus. 
+#Modifications visuelles#
+fviz_add(p,inconnu[,1:2],pointsize = 4,color = "black")
+
+#Question 8: identifier l'espèce du rongeur inconnu  
+
+#Voir dans l'espèce des Mus#
+#On crée un acp qui contient que les Mus#
+s <-dudi.pca(fa_mus[,4:8],
+               scann=F,
+               nf=5)
+#Elément fal qui contient le nouvel acp -> représentation graph par espèce des Mus#
+
+fviz_pca_ind(s, geom="point",
+                   habillage=fa_mus$Species,
+                   addEllipses = T,
+                   axes=c(1,2))
+fviz_add(s,inconnu [ ,1:2],pointsize=5)
+
+#Redéfinir l'inconnu avec la nouvelle acp#
+inconnu <- suprow(acp,fa_inconnu)$lisup
+#Visualiser l'inconnu dans le graph#
+fviz_add(p1,inconnu [,1:2],pointsize = 4,color = "black")
+
+#Distinction en fonction du sexe chez les Mus Musculus#
+df_musculus <- subset(df,Species=="Mus musculus")
+df_musculus[df_musculus==""]=NA
+na.omit(df_musculus) #Retire les NA lors calcul, en gros pas de valeur vide#
+#On fait l'acp#
+acp_mus <- dudi.pca(df_musculus[,4:8],
+                    scann=F,
+                    nf=5)
+#Mettre le graph dans un objet#
+p2 <- fviz_pca_ind(acp_mus,geom="point",
+                   habillage=df_musculus$Sex,
+                   addEllipses = T,
+                   axes=c(1,2))
+#Récupérer les infos de l'inconnu#
+inconnu <- suprow(acp_mus,df_inconnu)$lisup
+#visualiser le graph avec l'inconnu#
+fviz_add(p2,inconnu[,1:2],pointsize=4, color="black")
+
+#Comment faire dans le cas où on ne connait pas les espèces ?#
+#Méthode des kmeans : classification qui assigne automatiquement d'un point de vu statistique des individus à des groupes#
+kmeans(df[,4:8],centers = 3)
+
+#séparation selon les clusters#
+df_cluster <- kmeans(df[,4:8],centers = 3)$cluster
+#Visualiser le classement des espèces et des clusters d'après kmeans#
+xtabs(~Genus+cluster,data=df)
+
+#Calcul de la distance entre les individus#
+dist(df[,4:8])
+
+#Classification hiérarchique#
+hclust(dist(df[,4:8])
+)
+
+#Visualiser en plot#
+plot(hclust(dist(df[,4:8])))
+
+
+
+
+
+
+
+
+
+
+
+
